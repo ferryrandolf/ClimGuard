@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClimGuard — Prévention des risques climatiques à Douala</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Leaflet.js pour la carte -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    
+    <!-- Chart.js pour les graphiques -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Font Awesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+    <style>
+        /* ================================================
+           STYLES GÉNÉRAUX
+        ================================================ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #0f1923;
+            color: #ffffff;
+        }
+
+        /* ================================================
+           NAVBAR
+        ================================================ */
+        .navbar-climguard {
+            background: linear-gradient(135deg, #1a2a3a 0%, #0d1f2d 100%);
+            border-bottom: 2px solid #00d4aa;
+            padding: 12px 0;
+        }
+
+        .navbar-brand-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00d4aa !important;
+            letter-spacing: 2px;
+        }
+
+        .navbar-subtitle {
+            font-size: 0.75rem;
+            color: #8899aa;
+            margin-left: 8px;
+        }
+
+        .status-badge {
+            background: #00d4aa20;
+            border: 1px solid #00d4aa;
+            color: #00d4aa;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #00d4aa;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ================================================
+           CARTES INDICATEURS
+        ================================================ */
+        .indicator-card {
+            background: linear-gradient(135deg, #1a2a3a 0%, #152030 100%);
+            border: 1px solid #2a3a4a;
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .indicator-card:hover {
+            transform: translateY(-3px);
+            border-color: #00d4aa;
+        }
+
+        .indicator-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00d4aa;
+        }
+
+        .indicator-label {
+            font-size: 0.8rem;
+            color: #8899aa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .indicator-icon {
+            font-size: 2rem;
+            opacity: 0.3;
+        }
+
+        /* ================================================
+           CARTE LEAFLET
+        ================================================ */
+        #map {
+            height: 500px;
+            border-radius: 12px;
+            border: 1px solid #2a3a4a;
+        }
+
+        .map-container {
+            background: #1a2a3a;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #2a3a4a;
+        }
+
+        /* ================================================
+           LÉGENDE CARTE
+        ================================================ */
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        /* ================================================
+           TABLEAU ZONES
+        ================================================ */
+        .zones-table {
+            background: #1a2a3a;
+            border-radius: 12px;
+            border: 1px solid #2a3a4a;
+            overflow: hidden;
+        }
+
+        .zones-table table {
+            margin: 0;
+            color: #ffffff;
+        }
+
+        .zones-table thead {
+            background: #0d1f2d;
+        }
+
+        .zones-table th {
+            color: #00d4aa;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-color: #2a3a4a !important;
+            padding: 12px 16px;
+        }
+
+        .zones-table td {
+            border-color: #2a3a4a !important;
+            padding: 10px 16px;
+            vertical-align: middle;
+            font-size: 0.9rem;
+        }
+
+        .zones-table tr:hover td {
+            background: #152030;
+        }
+
+        .risk-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .risk-eleve {
+            background: #e74c3c20;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+
+        .risk-moyen {
+            background: #f39c1220;
+            color: #f39c12;
+            border: 1px solid #f39c12;
+        }
+
+        .risk-faible {
+            background: #2ecc7120;
+            color: #2ecc71;
+            border: 1px solid #2ecc71;
+        }
+
+        /* ================================================
+           GRAPHIQUE
+        ================================================ */
+        .chart-container {
+            background: #1a2a3a;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #2a3a4a;
+        }
+
+        /* ================================================
+           SECTION TITRES
+        ================================================ */
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #00d4aa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ================================================
+           FOOTER
+        ================================================ */
+        .footer-climguard {
+            background: #0d1f2d;
+            border-top: 1px solid #2a3a4a;
+            padding: 20px 0;
+            text-align: center;
+            color: #8899aa;
+            font-size: 0.8rem;
+            margin-top: 40px;
+        }
+
+        /* ================================================
+           LOADING
+        ================================================ */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #8899aa;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #2a3a4a;
+            border-top-color: #00d4aa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- ================================================
+     NAVBAR
+================================================ -->
+<nav class="navbar navbar-climguard">
+    <div class="container-fluid px-4">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-shield-alt text-success me-2" style="font-size:1.5rem"></i>
+            <span class="navbar-brand-text">ClimGuard</span>
+            <span class="navbar-subtitle">Prévention des risques climatiques urbains</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="navbar-subtitle">Douala, Cameroun</span>
+            <span class="status-badge">
+                <span class="status-dot"></span>
+                Système actif
+            </span>
+        </div>
+    </div>
+</nav>
+
+<!-- ================================================
+     CONTENU PRINCIPAL
+================================================ -->
+<div class="container-fluid px-4 py-4">
+
+    <!-- INDICATEURS CLÉS -->
+    <div class="row g-3 mb-4" id="indicators">
+        <div class="col-12">
+            <div class="loading">
+                <div class="spinner"></div>
+                Chargement des données...
+            </div>
+        </div>
+    </div>
+
+    <!-- CARTE + LÉGENDE -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-9">
+            <div class="map-container">
+                <div class="section-title">
+                    <i class="fas fa-map-marked-alt"></i>
+                    Carte des risques climatiques — Douala
+                </div>
+                <div id="map"></div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="map-container h-100">
+                <div class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Légende
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#e74c3c"></div>
+                    <div>
+                        <div style="font-weight:600">Risque Élevé</div>
+                        <div style="color:#8899aa;font-size:0.75rem">Intervention urgente requise</div>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#f39c12"></div>
+                    <div>
+                        <div style="font-weight:600">Risque Moyen</div>
+                        <div style="color:#8899aa;font-size:0.75rem">Surveillance renforcée</div>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#2ecc71"></div>
+                    <div>
+                        <div style="font-weight:600">Risque Faible</div>
+                        <div style="color:#8899aa;font-size:0.75rem">Surveillance normale</div>
+                    </div>
+                </div>
+
+                <hr style="border-color:#2a3a4a; margin: 20px 0">
+
+                <div class="section-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Répartition
+                </div>
+                <canvas id="riskPieChart" height="200"></canvas>
+
+                <hr style="border-color:#2a3a4a; margin: 20px 0">
+
+                <div class="section-title">
+                    <i class="fas fa-robot"></i>
+                    Modèle IA
+                </div>
+                <div style="font-size:0.8rem; color:#8899aa">
+                    <div class="mb-2">
+                        <span style="color:#00d4aa">Algorithme :</span>
+                        Random Forest
+                    </div>
+                    <div class="mb-2">
+                        <span style="color:#00d4aa">Précision :</span>
+                        89%
+                    </div>
+                    <div class="mb-2">
+                        <span style="color:#00d4aa">Données :</span>
+                        14 ans (2010-2024)
+                    </div>
+                    <div>
+                        <span style="color:#00d4aa">Quartiers :</span>
+                        10 zones analysées
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRAPHIQUE PLUVIOMÉTRIE + TABLEAU ZONES -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="chart-container">
+                <div class="section-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Pluviométrie mensuelle moyenne — Douala
+                </div>
+                <canvas id="rainChart" height="250"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="zones-table">
+                <div class="p-3 section-title mb-0">
+                    <i class="fas fa-list"></i>
+                    Quartiers analysés par ClimGuard
+                </div>
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Quartier</th>
+                            <th>Niveau de risque</th>
+                            <th>Population exposée</th>
+                            <th>Type de risque</th>
+                        </tr>
+                    </thead>
+                    <tbody id="zonesTableBody">
+                        <tr>
+                            <td colspan="4" class="text-center">
+                                <div class="spinner" style="margin:auto"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================================================
+     FOOTER
+================================================ -->
+<div class="footer-climguard">
+    <strong style="color:#00d4aa">ClimGuard</strong> — 
+    Intelligence Artificielle pour la prévention des risques climatiques urbains |
+    Douala, Cameroun |
+    Développé par <strong style="color:#00d4aa">Ferry Ngnepi</strong> |
+    Université Senghor d'Alexandrie
+</div>
+
+<!-- ================================================
+     SCRIPTS
+================================================ -->
+<!-- Leaflet.js -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Bootstrap -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// ================================================
+// CONFIGURATION
+// ================================================
+const API_BASE = "http://localhost:8000";
+
+// ================================================
+// 1. CHARGEMENT DES INDICATEURS
+// ================================================
+async function loadIndicators() {
+    try {
+        const response = await fetch(`${API_BASE}/api/stats`);
+        const data = await response.json();
+        const ind = data.indicateurs;
+        const zones = data.zones_risque;
+
+        document.getElementById('indicators').innerHTML = `
+            <div class="col-6 col-md-3">
+                <div class="indicator-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="indicator-value">${ind.pluie_moyenne_journaliere}</div>
+                            <div class="indicator-label">mm pluie / jour</div>
+                            <div style="color:#8899aa;font-size:0.75rem;margin-top:4px">
+                                Moyenne sur 14 ans
+                            </div>
+                        </div>
+                        <i class="fas fa-cloud-rain indicator-icon" style="color:#3498db"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="indicator-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="indicator-value" style="color:#e74c3c">
+                                ${ind.jours_critiques_par_an}
+                            </div>
+                            <div class="indicator-label">Jours critiques / an</div>
+                            <div style="color:#8899aa;font-size:0.75rem;margin-top:4px">
+                                Précipitations > 100mm
+                            </div>
+                        </div>
+                        <i class="fas fa-exclamation-triangle indicator-icon" 
+                           style="color:#e74c3c"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="indicator-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="indicator-value" style="color:#f39c12">
+                                ${ind.jours_alerte_par_an}
+                            </div>
+                            <div class="indicator-label">Jours d'alerte / an</div>
+                            <div style="color:#8899aa;font-size:0.75rem;margin-top:4px">
+                                Précipitations > 50mm
+                            </div>
+                        </div>
+                        <i class="fas fa-bell indicator-icon" style="color:#f39c12"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="indicator-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="indicator-value" style="color:#e74c3c">
+                                ${zones.eleve}
+                            </div>
+                            <div class="indicator-label">Zones à risque élevé</div>
+                            <div style="color:#8899aa;font-size:0.75rem;margin-top:4px">
+                                Sur ${zones.eleve + zones.moyen + zones.faible} quartiers analysés
+                            </div>
+                        </div>
+                        <i class="fas fa-map-marker-alt indicator-icon" 
+                           style="color:#e74c3c"></i>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Graphique pluviométrie
+        loadRainChart(data.pluviometrie_mensuelle);
+
+    } catch(e) {
+        console.error('Erreur chargement indicateurs:', e);
+    }
+}
+
+// ================================================
+// 2. CARTE INTERACTIVE DOUALA
+// ================================================
+async function loadMap() {
+    try {
+        // Initialisation de la carte centrée sur Douala
+        const map = L.map('map').setView([4.0511, 9.7679], 12);
+
+        // Fond de carte OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Chargement des zones depuis l'API
+        const response = await fetch(`${API_BASE}/api/zones`);
+        const data = await response.json();
+
+        // Affichage de chaque quartier sur la carte
+        data.zones.forEach(zone => {
+            // Cercle coloré selon le niveau de risque
+            const cercle = L.circle(
+                [zone.latitude, zone.longitude],
+                {
+                    color: zone.couleur,
+                    fillColor: zone.couleur,
+                    fillOpacity: 0.5,
+                    radius: Math.sqrt(zone.population_exposee) * 8,
+                    weight: 2
+                }
+            ).addTo(map);
+
+            // Popup avec les informations du quartier
+            cercle.bindPopup(`
+                <div style="font-family:'Segoe UI',sans-serif;min-width:220px">
+                    <h6 style="color:${zone.couleur};margin-bottom:8px;font-weight:700">
+                        📍 ${zone.quartier}
+                    </h6>
+                    <table style="width:100%;font-size:0.85rem">
+                        <tr>
+                            <td style="color:#666;padding:3px 0">Niveau de risque</td>
+                            <td style="font-weight:600;color:${zone.couleur}">
+                                ${zone.niveau_risque}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding:3px 0">Score IA</td>
+                            <td style="font-weight:600">
+                                ${(zone.score_risque * 100).toFixed(0)}%
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding:3px 0">Type de risque</td>
+                            <td>${zone.type_risque}</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding:3px 0">Population exposée</td>
+                            <td>${zone.population_exposee.toLocaleString()} hab.</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding:3px 0">Description</td>
+                            <td style="font-size:0.8rem">${zone.description}</td>
+                        </tr>
+                    </table>
+                </div>
+            `);
+
+            // Étiquette du quartier
+            L.marker([zone.latitude, zone.longitude], {
+                icon: L.divIcon({
+                    className: '',
+                    html: `<div style="
+                        background:rgba(0,0,0,0.7);
+                        color:white;
+                        padding:2px 6px;
+                        border-radius:4px;
+                        font-size:11px;
+                        font-weight:600;
+                        border-left:3px solid ${zone.couleur};
+                        white-space:nowrap;
+                    ">${zone.quartier}</div>`,
+                    iconAnchor: [0, 0]
+                })
+            }).addTo(map);
+        });
+
+        // Chargement du tableau
+        loadZonesTable(data.zones);
+
+        // Chargement du pie chart
+        loadPieChart(data.zones);
+
+    } catch(e) {
+        console.error('Erreur chargement carte:', e);
+    }
+}
+
+// ================================================
+// 3. TABLEAU DES ZONES
+// ================================================
+function loadZonesTable(zones) {
+    const tbody = document.getElementById('zonesTableBody');
+
+    // Tri par score de risque décroissant
+    zones.sort((a, b) => b.score_risque - a.score_risque);
+
+    tbody.innerHTML = zones.map(zone => {
+        const badgeClass = zone.niveau_risque === 'Élevé' ? 'risk-eleve' :
+                          zone.niveau_risque === 'Moyen' ? 'risk-moyen' : 'risk-faible';
+        return `
+            <tr>
+                <td style="font-weight:600">${zone.quartier}</td>
+                <td>
+                    <span class="risk-badge ${badgeClass}">
+                        ${zone.niveau_risque}
+                    </span>
+                </td>
+                <td>${zone.population_exposee.toLocaleString()}</td>
+                <td style="color:#8899aa;font-size:0.8rem">${zone.type_risque}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ================================================
+// 4. GRAPHIQUE PLUVIOMÉTRIE
+// ================================================
+function loadRainChart(data) {
+    const ctx = document.getElementById('rainChart').getContext('2d');
+
+    const couleurs = data.valeurs.map(v =>
+        v > 12 ? '#e74c3c' : v > 8 ? '#f39c12' : '#2ecc71'
+    );
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Précipitations moyennes (mm)',
+                data: data.valeurs,
+                backgroundColor: couleurs,
+                borderColor: couleurs,
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.parsed.y.toFixed(1)} mm`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#8899aa' },
+                    grid: { color: '#2a3a4a' }
+                },
+                y: {
+                    ticks: { color: '#8899aa' },
+                    grid: { color: '#2a3a4a' }
+                }
+            }
+        }
+    });
+}
+
+// ================================================
+// 5. PIE CHART RÉPARTITION DES RISQUES
+// ================================================
+function loadPieChart(zones) {
+    const eleve = zones.filter(z => z.niveau_risque === 'Élevé').length;
+    const moyen = zones.filter(z => z.niveau_risque === 'Moyen').length;
+    const faible = zones.filter(z => z.niveau_risque === 'Faible').length;
+
+    const ctx = document.getElementById('riskPieChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Élevé', 'Moyen', 'Faible'],
+            datasets: [{
+                data: [eleve, moyen, faible],
+                backgroundColor: ['#e74c3c', '#f39c12', '#2ecc71'],
+                borderColor: '#1a2a3a',
+                borderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: { color: '#ffffff', font: { size: 11 } }
+                }
+            }
+        }
+    });
+}
+
+// ================================================
+// INITIALISATION AU CHARGEMENT DE LA PAGE
+// ================================================
+document.addEventListener('DOMContentLoaded', () => {
+    loadIndicators();
+    loadMap();
+});
+</script>
+
+</body>
+</html>
